@@ -239,7 +239,7 @@ def main():
             st.divider()
     
     # Chat input
-    if api_key and st.session_state.chatbot.collection:
+    if api_key and st.session_state.chatbot.index is not None:
         user_question = st.text_input(
             "Ask a question about your PDFs:",
             key="user_input",
@@ -259,7 +259,7 @@ def main():
     else:
         if not api_key:
             st.info("👈 Please configure your OpenAI API key in the sidebar.")
-        elif not st.session_state.chatbot.collection:
+        elif st.session_state.chatbot.index is None:
             st.info("👈 Please upload and process your PDF files first.")
 
 if __name__ == "__main__":
