@@ -41,12 +41,18 @@ streamlit run pdf_chatbot.py
 
 ## How it Works
 - PDFs are split into chunks and embedded using `sentence-transformers`
-- Chunks are stored in a local ChromaDB vector database
+- Chunks are stored in-memory using a FAISS vector index (no sqlite or ChromaDB required)
 - User questions are embedded and matched to relevant chunks
 - OpenAI GPT-4o generates answers using the most relevant chunks as context
 - Each answer cites the document, page, and chunk for transparency
 
 ## Deployment
+
+### Notes on Deployment
+- The app now uses FAISS for vector search, which does not require sqlite or ChromaDB and is compatible with Streamlit Community Cloud.
+- All embeddings are computed on CPU for maximum compatibility (no GPU required).
+- Ensure your `requirements.txt` includes `faiss-cpu`, `torch`, and `sentence-transformers`.
+
 You can deploy this app for free on [Streamlit Community Cloud](https://streamlit.io/cloud) or any Python app hosting platform.
 
 ## License
@@ -54,4 +60,4 @@ MIT License
 
 ---
 
-> Built with ❤️ using Streamlit, OpenAI, and ChromaDB.
+> Built with ❤️ using Streamlit, OpenAI, and FAISS.
