@@ -8,17 +8,17 @@ import pickle
 # Core libraries for PDF processing and RAG
 import PyPDF2
 from sentence_transformers import SentenceTransformer
-import chromadb
-from chromadb.utils import embedding_functions
+import faiss
 import openai
 from openai import OpenAI
 
 # Alternative: Use Ollama for local LLM (uncomment if preferred)
 # import ollama
 
+
 class PDFProcessor:
     """Handle PDF loading and text extraction"""
-    
+
     @staticmethod
     def extract_text_from_pdf(pdf_file) -> list:
         """Extract text from uploaded PDF file, return list of (page_num, text)"""
@@ -28,7 +28,7 @@ class PDFProcessor:
             page_text = page.extract_text()
             page_texts.append((i + 1, page_text))  # 1-based page number
         return page_texts
-    
+
     @staticmethod
     def chunk_text_with_page(text: str, page_num: int, chunk_size: int = 1000, overlap: int = 200) -> list:
         """Split text into overlapping chunks, return list of (chunk, page_num)"""
@@ -47,62 +47,51 @@ class PDFProcessor:
             start = end - overlap
         return chunks
 
+
 class RAGChatbot:
-    """Main RAG chatbot class"""
-    
+    """Main RAG chatbot class using FAISS for vector search"""
     def __init__(self):
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.client = chromadb.Client()
-        self.collection = None
+        self.index = None
+        self.embeddings = []
+        self.documents = []
+        self.metadatas = []
         self.openai_client = None
-        
+
     def setup_openai(self, api_key: str):
         """Setup OpenAI client"""
         self.openai_client = OpenAI(api_key=api_key)
-    
+
     def create_collection(self, collection_name: str = "pdf_documents"):
-        """Create or get ChromaDB collection"""
-        try:
-            self.collection = self.client.get_collection(collection_name) if self.client else None
-            st.success(f"Loaded existing collection: {collection_name}")
-        except:
-            self.collection = self.client.create_collection(
-                name=collection_name,
-                embedding_function=embedding_functions.SentenceTransformerEmbeddingFunction(
-                    model_name="all-MiniLM-L6-v2"
-                )
-            )
-            st.success(f"Created new collection: {collection_name}")
-    
+        """Initialize FAISS index (if not already)"""
+        if self.index is None:
+            # Use dimension of embedding model
+            dim = self.embedding_model.get_sentence_embedding_dimension()
+            self.index = faiss.IndexFlatL2(dim)
+            st.success(f"Initialized FAISS index for: {collection_name}")
+
     def add_documents(self, documents: List[str], metadatas: List[Dict]):
-        """Add documents to the vector database"""
-        if not self.collection:
+        """Add documents to the FAISS index"""
+        if self.index is None:
             self.create_collection()
-        
-        # Generate unique IDs for each chunk
-        ids = [f"doc_{i}" for i in range(len(documents))]
-        
-        # Add documents to collection
-        self.collection.add(
-            documents=documents,
-            metadatas=metadatas,
-            ids=ids
-        )
-        
-        st.success(f"Added {len(documents)} document chunks to the database!")
-    
+        # Compute embeddings
+        new_embeddings = self.embedding_model.encode(documents, show_progress_bar=True)
+        self.index.add(new_embeddings)
+        self.embeddings.extend(new_embeddings)
+        self.documents.extend(documents)
+        self.metadatas.extend(metadatas)
+        st.success(f"Added {len(documents)} document chunks to the FAISS index!")
+
     def search_documents(self, query: str, n_results: int = 3):
         """Search for relevant documents and return both chunks and metadata"""
-        if not self.collection:
+        if self.index is None or len(self.documents) == 0:
             return [], []
-        results = self.collection.query(
-            query_texts=[query],
-            n_results=n_results
-        )
-        docs = results['documents'][0] if results['documents'] else []
-        metadatas = results['metadatas'][0] if results.get('metadatas') else []
+        query_embedding = self.embedding_model.encode([query])
+        D, I = self.index.search(query_embedding, n_results)
+        docs = [self.documents[i] for i in I[0] if i < len(self.documents)]
+        metadatas = [self.metadatas[i] for i in I[0] if i < len(self.metadatas)]
         return docs, metadatas
-    
+
     def generate_response(self, query: str, context_docs: list, context_metadatas: list) -> str:
         """Generate response using OpenAI and include references to sources"""
         if not self.openai_client:
@@ -128,7 +117,7 @@ class RAGChatbot:
             return response.choices[0].message.content
         except Exception as e:
             return f"Error generating response: {str(e)}"
-    
+
     def chat(self, query: str) -> str:
         """Main chat function"""
         # Search for relevant documents and their metadata
