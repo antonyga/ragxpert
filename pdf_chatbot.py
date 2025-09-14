@@ -52,7 +52,7 @@ class RAGChatbot:
     
     def __init__(self):
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.client = chromadb.PersistentClient(path="./chroma_db")
+        self.client = chromadb.Client()
         self.collection = None
         self.openai_client = None
         
@@ -63,7 +63,7 @@ class RAGChatbot:
     def create_collection(self, collection_name: str = "pdf_documents"):
         """Create or get ChromaDB collection"""
         try:
-            self.collection = self.client.get_collection(collection_name)
+            self.collection = self.client.get_collection(collection_name) if self.client else None
             st.success(f"Loaded existing collection: {collection_name}")
         except:
             self.collection = self.client.create_collection(
