@@ -51,7 +51,7 @@ class PDFProcessor:
 class RAGChatbot:
     """Main RAG chatbot class using FAISS for vector search"""
     def __init__(self):
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
         self.index = None
         self.embeddings = []
         self.documents = []
