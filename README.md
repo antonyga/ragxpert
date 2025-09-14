@@ -10,7 +10,7 @@ A modern Streamlit app that lets you chat with your own PDF documents using Retr
 - 🖥️ Simple, modern Streamlit UI
 
 ## Demo
-![PDF RAG Chatbot Screenshot](https://user-images.githubusercontent.com/ragxpert_screenshot.png)
+![PDF RAG Chatbot Screenshot](https://github.com/antonyga/ragxpert/blob/main/ragxpert_screenshot.png)
 
 ## Getting Started
 
