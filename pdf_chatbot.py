@@ -270,6 +270,6 @@ if __name__ == "__main__":
 streamlit>=1.28.0
 PyPDF2>=3.0.1
 sentence-transformers>=2.2.2
-chromadb>=0.4.15
+faiss-cpu>=1.7.4
 ollama>=0.1.7
 """
