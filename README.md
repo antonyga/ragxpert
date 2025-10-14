@@ -1,4 +1,4 @@
-# PDF RAG Chatbot
+# RAGXPERT
 
 A modern Streamlit app that lets you chat with your own PDF documents using Retrieval-Augmented Generation (RAG) and OpenAI's GPT models. Upload PDFs, ask questions, and get answers with references to the exact document, page, and chunk.
 
